@@ -1,5 +1,6 @@
 import java.io.*;
 import java.util.*;
+import java.text.SimpleDateFormat;
 
 public class InventoryManagement {
 
@@ -27,17 +28,19 @@ public class InventoryManagement {
         }
     }
 
-    // This is the class for our BST tree data structure.
-    // Like a family tree, but for our inventory items
+    // This is the class for our AVL tree data structure.
+    // Like a family tree, but for our inventory items, and it keeps itself balanced
     private static class TreeNode {
         InventoryItem item; // The item itself
         TreeNode left, right; // The "children" on the left and right
+        int height; // The height of this node in the tree
 
         // Constructor to create a new "family member"
         public TreeNode(InventoryItem item) {
             this.item = item;
             this.left = null;
             this.right = null;
+            this.height = 1; // New nodes start with a height of 1
         }
     }
 
@@ -53,8 +56,8 @@ public class InventoryManagement {
         //loadInventoryFromCSV(); // Load our inventory from the CSV file
         List<InventoryItem> initialInventory = inventoryRepository.loadInventoryFromCSV();
         for (InventoryItem item : initialInventory) {
-            root = insertIntoBST(root, item);
-            addItemToInventoryMap(item);
+            root = insertIntoAVL(root, item); // Insert items from CSV into AVL tree
+            addItemToInventoryMap(item); // Add items to the inventory map
         }
 
         Scanner scanner = new Scanner(System.in); // To get input from the user
@@ -136,10 +139,10 @@ public class InventoryManagement {
 
         InventoryItem newItem = new InventoryItem(dateEntered, stockLabel, brand, engineNumber, status); // Create the new item
 
-        inventoryRepository.addItemToCSV(newItem);
+        inventoryRepository.addItemToCSV(newItem); // Add the new item to the CSV file
 
-        root = insertIntoBST(root, newItem);
-        addItemToInventoryMap(newItem);
+        root = insertIntoAVL(root, newItem); // Add the new item to the AVL tree
+        addItemToInventoryMap(newItem); // Add the new item to the inventory map
 
         System.out.println("Item added successfully!"); // Yay! Success!
     }
@@ -155,8 +158,8 @@ public class InventoryManagement {
         }
 
         if (confirmDelete(scanner, engineNumber)) {
-            root = deleteFromBST(root, engineNumber);
-            removeItemFromInventoryMap(engineNumber);
+            root = deleteFromAVL(root, engineNumber); // Delete the item from the AVL tree
+            removeItemFromInventoryMap(engineNumber); // Remove the item from the inventory map
 
             String newFilePath = inventoryRepository.generateNewFilePath();
             saveInventoryToCSV(newFilePath);  // Save the updated inventory to CSV
@@ -178,7 +181,7 @@ public class InventoryManagement {
     private static void searchItemByEngineNumber(Scanner scanner) {
         System.out.print("Enter Engine Number to search: ");
         String engineNumber = scanner.nextLine();
-        InventoryItem item = inventoryMap.get(engineNumber);
+        InventoryItem item = inventoryMap.get(engineNumber); // Retrieve item from the inventory map
 
         if (item != null) {
             System.out.println("Item found with Engine Number " + engineNumber + ":");
@@ -220,6 +223,7 @@ public class InventoryManagement {
     private static void displaySortedInventory() {
         List<InventoryItem> sortedList = getSortedInventory();
 
+        System.out.println("Sorted Inventory:");
         System.out.println("-----------------------------------------------------------------------------------");
         System.out.printf("%-12s %-12s %-10s %-15s %-10s\n", "Date Entered", "Stock Label", "Brand", "Engine Number", "Status");
         System.out.println("-----------------------------------------------------------------------------------");
@@ -252,75 +256,192 @@ public class InventoryManagement {
     //  Helper Methods For Hash Map Implementation
     // --------------------------------------------------------------
     private static void addItemToInventoryMap(InventoryItem item) {
-        inventoryMap.put(item.engineNumber, item);
+        inventoryMap.put(item.engineNumber, item); // Store item in the hash map
     }
 
     private static void removeItemFromInventoryMap(String engineNumber) {
-        inventoryMap.remove(engineNumber);
+        inventoryMap.remove(engineNumber); // Remove item from the hash map
     }
 
     private static List<InventoryItem> getSortedInventory() {
         List<InventoryItem> inventoryList = new ArrayList<>(); // Let's make a list
-        inOrderTraversal(root, inventoryList); // Let's get the items from the "family tree"
+        inOrderTraversal(root, inventoryList); // Let's get the items from the AVL tree
         return inventoryList;
     }
 
     // --------------------------------------------------------------
-    //   Methods for BST Tree Implementation
+    //   Methods for AVL Tree Implementation
     // --------------------------------------------------------------
-    private static TreeNode insertIntoBST(TreeNode node, InventoryItem item) {
+
+    // Helper method to get the height of a node
+    private static int height(TreeNode node) {
+        return node == null ? 0 : node.height;
+    }
+
+    // Helper method to calculate balance factor
+    private static int getBalance(TreeNode node) {
+        return node == null ? 0 : height(node.left) - height(node.right);
+    }
+
+    // Right rotation
+    private static TreeNode rightRotate(TreeNode y) {
+        TreeNode x = y.left;
+        TreeNode T2 = x.right;
+
+        // Perform rotation
+        x.right = y;
+        y.left = T2;
+
+        // Update heights
+        y.height = Math.max(height(y.left), height(y.right)) + 1;
+        x.height = Math.max(height(x.left), height(x.right)) + 1;
+
+        return x; // Return new root
+    }
+
+    // Left rotation
+    private static TreeNode leftRotate(TreeNode x) {
+        TreeNode y = x.right;
+        TreeNode T2 = y.left;
+
+        // Perform rotation
+        y.left = x;
+        x.right = T2;
+
+        // Update heights
+        x.height = Math.max(height(x.left), height(x.right)) + 1;
+        y.height = Math.max(height(y.left), height(y.right)) + 1;
+
+        return y; // Return new root
+    }
+
+    // Insert into AVL tree
+    private static TreeNode insertIntoAVL(TreeNode node, InventoryItem item) {
         if (node == null) {
             return new TreeNode(item);
         }
 
         if (item.engineNumber.compareTo(node.item.engineNumber) < 0) {
-            node.left = insertIntoBST(node.left, item);
+            node.left = insertIntoAVL(node.left, item);
         } else if (item.engineNumber.compareTo(node.item.engineNumber) > 0) {
-            node.right = insertIntoBST(node.right, item);
+            node.right = insertIntoAVL(node.right, item);
         } else {
             // Duplicate keys not allowed
             return node;
         }
 
-        return node;
+        // Update height of current node
+        node.height = Math.max(height(node.left), height(node.right)) + 1;
+
+        // Check balance factor and rotate if necessary
+        int balance = getBalance(node);
+
+        // Left Left Case
+        if (balance > 1 && item.engineNumber.compareTo(node.left.item.engineNumber) < 0) {
+            return rightRotate(node);
+        }
+
+        // Right Right Case
+        if (balance < -1 && item.engineNumber.compareTo(node.right.item.engineNumber) > 0) {
+            return leftRotate(node);
+        }
+
+        // Left Right Case
+        if (balance > 1 && item.engineNumber.compareTo(node.left.item.engineNumber) > 0) {
+            node.left = leftRotate(node.left);
+            return rightRotate(node);
+        }
+
+        // Right Left Case
+        if (balance < -1 && item.engineNumber.compareTo(node.right.item.engineNumber) < 0) {
+            node.right = rightRotate(node.right);
+            return leftRotate(node);
+        }
+
+        return node; // Return unchanged node pointer
     }
 
-    private static TreeNode deleteFromBST(TreeNode node, String engineNumber) {
-        if (node == null) {
+    // Delete from AVL tree
+    private static TreeNode deleteFromAVL(TreeNode root, String engineNumber) {
+        if (root == null) {
             return null;
         }
 
-        if (engineNumber.compareTo(node.item.engineNumber) < 0) {
-            node.left = deleteFromBST(node.left, engineNumber);
-        } else if (engineNumber.compareTo(node.item.engineNumber) > 0) {
-            node.right = deleteFromBST(node.right, engineNumber);
+        if (engineNumber.compareTo(root.item.engineNumber) < 0) {
+            root.left = deleteFromAVL(root.left, engineNumber);
+        } else if (engineNumber.compareTo(root.item.engineNumber) > 0) {
+            root.right = deleteFromAVL(root.right, engineNumber);
         } else {
             // Node with the item to delete found
 
             // Node with only one child or no child
-            if (node.left == null) {
-                return node.right;
-            } else if (node.right == null) {
-                return node.left;
+            if ((root.left == null) || (root.right == null)) {
+                TreeNode temp = (root.left != null) ? root.left : root.right;
+
+                // No child case
+                if (temp == null) {
+                    temp = root;
+                    root = null;
+                } else {
+                    root = temp; // Copy contents of non-empty child
+                }
+            } else {
+                // Node with two children: Get the inorder successor (smallest in the right subtree)
+                InventoryItem tempItem = minValue(root.right).item;
+
+                // Copy the inorder successor's data to this node
+                root.item = tempItem;
+
+                // Delete the inorder successor
+                root.right = deleteFromAVL(root.right, tempItem.engineNumber);
             }
-
-            // Node with two children: Get the inorder successor (smallest in the right subtree)
-            node.item = minValue(node.right);
-
-            // Delete the inorder successor
-            node.right = deleteFromBST(node.right, node.item.engineNumber);
         }
 
-        return node;
+        // If the tree had only one node then return
+        if (root == null) {
+            return null;
+        }
+
+        // Update height of the current node
+        root.height = Math.max(height(root.left), height(root.right)) + 1;
+
+        // Get the balance factor of this node (to check whether this node became unbalanced)
+        int balance = getBalance(root);
+
+        // Left Left Case
+        if (balance > 1 && getBalance(root.left) >= 0) {
+            return rightRotate(root);
+        }
+
+        // Left Right Case
+        if (balance > 1 && getBalance(root.left) < 0) {
+            root.left = leftRotate(root.left);
+            return rightRotate(root);
+        }
+
+        // Right Right Case
+        if (balance < -1 && getBalance(root.right) <= 0) {
+            return leftRotate(root);
+        }
+
+        // Right Left Case
+        if (balance < -1 && getBalance(root.right) > 0) {
+            root.right = rightRotate(root.right);
+            return leftRotate(root);
+        }
+
+        return root;
     }
 
-    private static InventoryItem minValue(TreeNode node) {
-        InventoryItem minv = node.item;
-        while (node.left != null) {
-            minv = node.left.item;
-            node = node.left;
+    private static TreeNode minValue(TreeNode node) {
+        TreeNode current = node;
+
+        /* loop down to find the leftmost leaf */
+        while (current.left != null) {
+            current = current.left;
         }
-        return minv;
+
+        return current;
     }
 
     //This is the method to in order traversal
