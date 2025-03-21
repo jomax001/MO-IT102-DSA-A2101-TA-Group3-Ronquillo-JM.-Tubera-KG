@@ -1,4 +1,4 @@
-Date Entered,Stock Label,Brand,Engine Number,Status
+,Stock Label,Brand,Engine Number,Status
 03/07/2023,New,Yamaha,02G7NJCRGS,On-hand
 02/03/2023,Old,Kymco,0AV7SWGX93,Sold
 02/01/2023,Old,Honda,142QVTSIUR,On-hand
@@ -4608,6 +4608,4 @@ Date Entered,Stock Label,Brand,Engine Number,Status
 03/03/2023,New,Kawasaki,Z46VKPIJBY,Sold
 02/08/2023,Old,Honda,Z4NY5JGZZT,Sold
 
-03/18/2025,New,Honda,1234567,On-hand
-03/18/2025,New,Kawasaki,123456789,On-hand 
-03/20/2025,Old,Suzuki,1234567,On-hand
+03/21/2025,New,Honda,1234567,On-hand
